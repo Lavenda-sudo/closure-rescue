@@ -20,6 +20,11 @@ Rules:
 3. Explain pain chemically (dopamine/oxytocin drop), not as personal failure.
 """
 
+# --- GET API KEY (Secrets first, then fallback to sidebar) ---
+api_key = None
+if "GROQ_API_KEY" in st.secrets:
+    api_key = st.secrets["GROQ_API_KEY"]
+
 # --- SESSION STATE INITIALIZATION ---
 if "breakup_time" not in st.session_state:
     st.session_state.breakup_time = None
@@ -31,16 +36,21 @@ if "vault" not in st.session_state:
 # --- SIDEBAR: SETUP & API ---
 with st.sidebar:
     st.title("🛡️ Rescue Command")
-    api_key = st.text_input("Groq API Key (Free)", type="password", help="Key starting with gsk_ from console.groq.com")
     
-    selected_model = "llama3-8b-8192"
+    # If not in secrets, allow manual entry
+    if not api_key:
+        api_key = st.text_input("Groq API Key (Free)", type="password", help="Key starting with gsk_ from console.groq.com")
+    else:
+        st.success("🟢 Rescue Engine: Connected")
+
+    selected_model = "llama-3.3-70b-versatile"
     if api_key:
         try:
             client_temp = Groq(api_key=api_key)
             models_list = [m.id for m in client_temp.models.list().data if "whisper" not in m.id and "guard" not in m.id]
             selected_model = st.selectbox("Active AI Model", models_list, index=0)
         except Exception:
-            selected_model = "llama3-8b-8192"
+            selected_model = "llama-3.3-70b-versatile"
 
     st.markdown("---")
     st.subheader("Triage Clock")
@@ -111,7 +121,7 @@ with tab1:
             
     if user_input := st.chat_input("What is happening right now?"):
         if not api_key:
-            st.warning("Please enter your Groq API key in the sidebar.")
+            st.warning("Please configure your Groq API key.")
         else:
             client = Groq(api_key=api_key)
             st.session_state.messages.append({"role": "user", "content": user_input})
@@ -159,4 +169,4 @@ with tab2:
             st.markdown("### Analysis:")
             st.markdown(analysis)
         elif not api_key:
-            st.warning("Enter your Groq API key in the sidebar.")
+            st.warning("Please configure your Groq API key.")
